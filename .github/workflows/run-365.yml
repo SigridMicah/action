@@ -1,0 +1,45 @@
+name: 运行 365.py 并上传 success_results.txt
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v3
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: 安装依赖
+        run: |
+          pip install -r requirements.txt || true
+
+      - name: 运行 365.py
+        run: python 365.py
+
+      - name: 重命名并移动 success_results.txt 到 outputs/
+        run: |
+          mkdir -p outputs
+          timestamp=$(date +"%Y-%m-%d_%H-%M")
+          if [ -f success_results.txt ]; then
+            mv success_results.txt outputs/success_${timestamp}.txt
+          else
+            echo "❌ 没有找到 success_results.txt，跳过上传。"
+            exit 0
+          fi
+
+      - name: 提交并 push success_xxx.txt 到仓库
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add outputs/
+          git commit -m "上传 success_results 时间戳文件" || echo "没有需要提交的更改"
+          git push
